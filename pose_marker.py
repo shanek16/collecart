@@ -118,6 +118,7 @@ if clientID!=-1:
                     strg += new_ids[i][0]+', '
 
                 cv2.putText(img, "Id: " + strg, (10,64), font, 3, (0,255,0),2,cv2.LINE_AA)
+                cv2.putText(img, 'tvec: '+ str(tvec), (10,640), font, 1, (0,255,0),2,cv2.LINE_AA)
                 # print('\nrotation vector: \n',rvec)
                 # print('\ntranslation vector: \n',tvec)
                 rotation_matrix, _ = cv2.Rodrigues(rvec[0])
@@ -126,15 +127,7 @@ if clientID!=-1:
 
             else:
                 # code to show 'No Ids' when no markers are found
-                cv2.putText(img, "No Ids", (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)
-
-            #     # project 3D points to image plane
-            #     imgpts, jac = cv2.projectPoints(axis, rvecs, tvecs, mtx, dist)
-            #     img = draw(img,corners2,imgpts)
-            #     print('\n\nimage',i)
-            #     print('rotation vector: \n' ,rvecs)
-            #     print('translation vector: \n' ,tvecs)
-            
+                cv2.putText(img, "No Ids", (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)            
 
             # Detect the markers in the image
             markerCorners, markerIds, rejectedCandidates = cv2.aruco.detectMarkers(img, dictionary, parameters=parameters)
