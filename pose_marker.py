@@ -118,8 +118,10 @@ if clientID!=-1:
                     strg += new_ids[i][0]+', '
 
                 cv2.putText(img, "Id: " + strg, (10,64), font, 3, (0,255,0),2,cv2.LINE_AA)
-                print('\nrotation vector: \n',rvec)
-                print('\ntranslation vector: \n',tvec)
+                # print('\nrotation vector: \n',rvec)
+                # print('\ntranslation vector: \n',tvec)
+                rotation_matrix, _ = cv2.Rodrigues(rvec[0])
+                print('\nrotation matrix: \n',rotation_matrix)
 
 
             else:
