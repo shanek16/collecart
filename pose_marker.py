@@ -146,6 +146,7 @@ if clientID!=-1:
 
 
             img=cv2.resize(img, (512,512))
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             cv2.imshow('image',img)
             img_name = "{}.jpg".format(i)
             cv2.imwrite(img_name, img)    
