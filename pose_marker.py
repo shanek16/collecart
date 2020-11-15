@@ -5,11 +5,10 @@ import time
 import sys
 import cv2
 import matplotlib.pyplot as mlp
+count=0
 
 with np.load('B.npz') as X:
     mtx, dist, _, _ = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
-
-i=0
 
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 70, 1)
 objp = np.zeros((6*6,3), np.float32)
@@ -54,8 +53,8 @@ if clientID!=-1:
 
     # Initialize the detector parameters using default values
     parameters =  cv2.aruco.DetectorParameters_create()
-
-
+    
+    f=open("./img/data.txt",'w')
     while (vrep.simxGetConnectionId(clientID) != -1):
         #pin steer
         err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,0,vrep.simx_opmode_streaming)
@@ -70,6 +69,7 @@ if clientID!=-1:
         # time.sleep(0.2)
         err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_buffer)
         if err == vrep.simx_return_ok:
+            count=count+1
             img = np.array(image,dtype=np.uint8)
             img.resize([resolution[1],resolution[0],3])
             img=cv2.flip(img,0)
@@ -94,8 +94,8 @@ if clientID!=-1:
             if np.all(ids != None):
 
                 # estimate pose of each marker and return the values
-                # rvet and tvec-different from camera coefficients
-                rvec, tvec ,_ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.2, mtx, dist)
+                # rvec and tvec-different from camera coefficients
+                rvec, tvec ,_ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.1, mtx, dist)
                 #(rvec-tvec).any() # get rid of that nasty numpy value array error
 
                 for i in range(0, ids.size):
@@ -107,24 +107,25 @@ if clientID!=-1:
 
 
                 #code to show ids of the marker found
-
-                # print('ids: \n',ids)
-                # print('type(ids):',type(ids))
                 choices=['back','front','left','right']
                 new_ids=np.choose(ids,choices)
-                # print('new ids: ',new_ids)
                 strg = ''
                 for i in range(0, new_ids.size):
                     strg += new_ids[i][0]+', '
 
                 cv2.putText(img, "Id: " + strg, (10,64), font, 3, (0,255,0),2,cv2.LINE_AA)
                 cv2.putText(img, 'tvec: '+ str(tvec), (10,640), font, 1, (0,255,0),2,cv2.LINE_AA)
-                # print('\nrotation vector: \n',rvec)
-                # print('\ntranslation vector: \n',tvec)
-                rotation_matrix, _ = cv2.Rodrigues(rvec[0])
-                print('\nrotation matrix: \n',rotation_matrix)
+                print('\nrotation vector: \n',rvec)
+                print('\ntranslation vector: \n',tvec)
+                f.write("\n\n%d:\n" %count)
+                f.write("rotation vector: \n")
+                f.write(str(rvec))
+                f.write("\ntranslation vector: \n")
+                f.write(str(tvec))
+                # rotation_matrix, _ = cv2.Rodrigues(rvec[0])
+                # print('\nrotation matrix: \n',rotation_matrix)
 
-
+ 
             else:
                 # code to show 'No Ids' when no markers are found
                 cv2.putText(img, "No Ids", (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)            
@@ -137,11 +138,11 @@ if clientID!=-1:
             img=cv2.aruco.drawDetectedMarkers(img, markerCorners, markerIds)
             # rejected=cv2.aruco.drawDetectedMarkers(copy_img, rejectedCandidates, (),(255,255,0))
 
-
+            print('count: ',count)
             img=cv2.resize(img, (512,512))
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             cv2.imshow('image',img)
-            img_name = "{}.jpg".format(i)
+            img_name = "./img/{}.jpg".format(count)
             cv2.imwrite(img_name, img)    
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -154,4 +155,5 @@ else:
   print ("Failed to connect to remote API Server")
   vrep.simxFinish(clientID)
 
+f.close
 cv2.destroyAllWindows()
