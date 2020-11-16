@@ -5,6 +5,7 @@ import time
 import sys
 import cv2
 import matplotlib.pyplot as mlp
+import math
 count=0
 
 with np.load('B.npz') as X:
@@ -97,6 +98,9 @@ if clientID!=-1:
                 # rvec and tvec-different from camera coefficients
                 rvec, tvec ,_ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.1, mtx, dist)
                 #(rvec-tvec).any() # get rid of that nasty numpy value array error
+                theta=np.linalg.norm(rvec[0][0])
+                vector=np.array(rvec[0][0]/theta)
+                rotation_matrix, _ = cv2.Rodrigues(rvec[0])
 
                 for i in range(0, ids.size):
                     # draw axis for the aruco markers
@@ -104,7 +108,6 @@ if clientID!=-1:
 
                 # draw a square around the markers
                 cv2.aruco.drawDetectedMarkers(img, corners)
-
 
                 #code to show ids of the marker found
                 choices=['back','front','left','right']
@@ -114,16 +117,18 @@ if clientID!=-1:
                     strg += new_ids[i][0]+', '
 
                 cv2.putText(img, "Id: " + strg, (10,64), font, 3, (0,255,0),2,cv2.LINE_AA)
-                cv2.putText(img, 'tvec: '+ str(tvec), (10,640), font, 1, (0,255,0),2,cv2.LINE_AA)
-                print('\nrotation vector: \n',rvec)
-                print('\ntranslation vector: \n',tvec)
+                # print('\nrotation vector: \n',rvec)
+                # print('\ntranslation vector: \n',tvec)
                 f.write("\n\n%d:\n" %count)
                 f.write("rotation vector: \n")
                 f.write(str(rvec))
                 f.write("\ntranslation vector: \n")
                 f.write(str(tvec))
-                # rotation_matrix, _ = cv2.Rodrigues(rvec[0])
-                # print('\nrotation matrix: \n',rotation_matrix)
+                f.write("\ntheta: %f" %theta)
+                f.write("\nvector: ")
+                f.write(str(vector))
+                f.write('\nrotation matrix:\n')
+                f.write(str(rotation_matrix))
 
  
             else:
