@@ -167,6 +167,12 @@ if clientID!=-1:
 
                 #translation control
                 steer_angle=tvec[0][0][1]*90*Kp
+                if steer_angle>=45:
+                    steer_angle=45
+                    
+                elif steer_angle<=-45:
+                    steer_angle=-45
+                    
                 if tvec[0][0][0]<0.1 and tvec[0][0][0]>-0.1:
                     move_straight()
                     print('\nmove straight!\n')
