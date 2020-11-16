@@ -8,6 +8,7 @@ import matplotlib.pyplot as mlp
 import math
 
 count=0
+Kp=1
 
 def yawpitchrolldecomposition(R):
     sin_x    = math.sqrt(R[2,0] * R[2,0] +  R[2,1] * R[2,1])    
@@ -63,12 +64,12 @@ if clientID!=-1:
         err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
         return err_code
 
-    def move_right():
+    def move(steer_angle):
         #pin steer
-        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,-45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,-45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,-45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,-45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,steer_angle,vrep.simx_opmode_streaming)
         #motor control
         err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
@@ -76,18 +77,6 @@ if clientID!=-1:
         err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
         return err_code
 
-    def move_left():
-        #pin steer
-        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,45,vrep.simx_opmode_streaming)
-        #motor control
-        err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetVelocity(clientID,bl_motor_handle,vel,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
-        return err_code
 
     #camera
     print ('Vision Sensor object handling')
@@ -176,14 +165,14 @@ if clientID!=-1:
                 # f.write('\nyawpitchroll angles:\n')
                 # f.write(str(yawpitchroll_angles))
 
-                if tvec[0][0][0]>0.01:
-                    move_right()
-                    print('\nmove right!\n')
-                elif tvec[0][0][0]<-0.01:
-                    move_left()
-                    print('\nmove left!\n')
-                else:
+                #translation control
+                steer_angle=tvec[0][0][1]*90*Kp
+                if tvec[0][0][0]<0.1 and tvec[0][0][0]>-0.1:
                     move_straight()
+                    print('\nmove straight!\n')
+                else:
+                    move(steer_angle)
+                    print('\nsteer_angle: ', steer_angle)
  
             else:
                 # code to show 'No Ids' when no markers are found
