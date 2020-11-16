@@ -6,7 +6,15 @@ import sys
 import cv2
 import matplotlib.pyplot as mlp
 import math
+
 count=0
+
+def yawpitchrolldecomposition(R):
+    sin_x    = math.sqrt(R[2,0] * R[2,0] +  R[2,1] * R[2,1])    
+    z1    = math.atan2(R[2,0], R[2,1])     # around z1-axis
+    x      = math.atan2(sin_x,  R[2,2])     # around x-axis
+    z2    = math.atan2(R[0,2], -R[1,2])    # around z2-axis
+    return np.array([[z1], [x], [z2]])
 
 with np.load('B.npz') as X:
     mtx, dist, _, _ = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
@@ -39,24 +47,10 @@ if clientID!=-1:
     err_code,fr_joint=vrep.simxGetObjectHandle(clientID,"fr_steer", vrep.simx_opmode_blocking)
 
     t = time.time() #record the initial time
-
-    #camera
-    print ('Vision Sensor object handling')
-    res, v1 = vrep.simxGetObjectHandle(clientID, 'camera_back', vrep.simx_opmode_oneshot_wait)
-    print ('Getting first image')
-    err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_streaming)
-    
     #set vel
     vel=20 
 
-    # Load the predefined dictionary
-    dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
-
-    # Initialize the detector parameters using default values
-    parameters =  cv2.aruco.DetectorParameters_create()
-    
-    f=open("./img/data.txt",'w')
-    while (vrep.simxGetConnectionId(clientID) != -1):
+    def move_straight():
         #pin steer
         err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,0,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,0,vrep.simx_opmode_streaming)
@@ -67,6 +61,49 @@ if clientID!=-1:
         err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetVelocity(clientID,bl_motor_handle,vel,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
+        return err_code
+
+    def move_right():
+        #pin steer
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,45,vrep.simx_opmode_streaming)
+        #motor control
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,bl_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
+        return err_code
+
+    def move_left():
+        #pin steer
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,-45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,-45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,-45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,-45,vrep.simx_opmode_streaming)
+        #motor control
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,bl_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
+        return err_code
+
+    #camera
+    print ('Vision Sensor object handling')
+    res, v1 = vrep.simxGetObjectHandle(clientID, 'camera_back', vrep.simx_opmode_oneshot_wait)
+    print ('Getting first image')
+    err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_streaming)
+
+    # Load the predefined dictionary
+    dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
+
+    # Initialize the detector parameters using default values
+    parameters =  cv2.aruco.DetectorParameters_create()
+    
+    f=open("./img/data.txt",'w')
+    while (vrep.simxGetConnectionId(clientID) != -1):
+        move_straight()
         # time.sleep(0.2)
         err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_buffer)
         if err == vrep.simx_return_ok:
@@ -101,6 +138,9 @@ if clientID!=-1:
                 theta=np.linalg.norm(rvec[0][0])
                 vector=np.array(rvec[0][0]/theta)
                 rotation_matrix, _ = cv2.Rodrigues(rvec[0])
+                yawpitchroll_angles = -180*yawpitchrolldecomposition(rotation_matrix)/math.pi
+                # yawpitchroll_angles[0,0] = (360-yawpitchroll_angles[0,0])%360 # change rotation sense if needed, comment this line otherwise
+                yawpitchroll_angles[1,0] = yawpitchroll_angles[1,0]+90
 
                 for i in range(0, ids.size):
                     # draw axis for the aruco markers
@@ -120,16 +160,28 @@ if clientID!=-1:
                 # print('\nrotation vector: \n',rvec)
                 # print('\ntranslation vector: \n',tvec)
                 f.write("\n\n%d:\n" %count)
-                f.write("rotation vector: \n")
-                f.write(str(rvec))
+                # f.write("rotation vector: \n")
+                # f.write(str(rvec))
+                # f.write("\nangle(rvec[0][0][1]-.17): \n")
+                # f.write(str(rvec[0][0][1]-.11))
                 f.write("\ntranslation vector: \n")
                 f.write(str(tvec))
-                f.write("\ntheta: %f" %theta)
-                f.write("\nvector: ")
-                f.write(str(vector))
-                f.write('\nrotation matrix:\n')
-                f.write(str(rotation_matrix))
+                # f.write("\ntheta: %f" %theta)
+                # f.write("\nvector: ")
+                # f.write(str(vector))
+                # f.write("\nangle: \n")
+                # f.write(str(1000*vector[1]-90))
+                # f.write('\nrotation matrix:\n')
+                # f.write(str(rotation_matrix))
+                # f.write('\nyawpitchroll angles:\n')
+                # f.write(str(yawpitchroll_angles))
 
+                if tvec[0][0][0]>0.01:
+                    move_right()
+                    print('\nmove right!\n')
+                elif tvec[0][0][0]<-0.01:
+                    move_left()
+                    print('\nmove left!\n')
  
             else:
                 # code to show 'No Ids' when no markers are found
