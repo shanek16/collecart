@@ -64,12 +64,38 @@ if clientID!=-1:
         err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
         return err_code
 
+    def move_left():
+        #pin steer
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,45,vrep.simx_opmode_streaming)
+        #motor control
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,bl_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
+        return err_code
+
+    def move_right():
+        #pin steer
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,-45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,-45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,-45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,-45,vrep.simx_opmode_streaming)
+        #motor control
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,bl_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
+        return err_code
+
     def move(steer_angle):
         #pin steer
-        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,steer_angle,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,steer_angle,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,steer_angle,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,-steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,-steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,-steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,-steer_angle,vrep.simx_opmode_streaming)
         #motor control
         err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
@@ -149,36 +175,41 @@ if clientID!=-1:
                 # print('\nrotation vector: \n',rvec)
                 # print('\ntranslation vector: \n',tvec)
                 f.write("\n\n%d:\n" %count)
+                f.write("translation vector: \n")
+                f.write(str(tvec))
                 # f.write("rotation vector: \n")
                 # f.write(str(rvec))
                 # f.write("\nangle(rvec[0][0][1]-.17): \n")
-                # f.write(str(rvec[0][0][1]-.11))
-                f.write("\ntranslation vector: \n")
-                f.write(str(tvec))
-                # f.write("\ntheta: %f" %theta)
+                # f.write(str(rvec[0][0][1]-.11))-9.0000e+01
                 # f.write("\nvector: ")
                 # f.write(str(vector))
                 # f.write("\nangle: \n")
                 # f.write(str(1000*vector[1]-90))
-                # f.write('\nrotation matrix:\n')
+                # f.write('\nrotation matrix:\n')-9.0000e+01
                 # f.write(str(rotation_matrix))
                 # f.write('\nyawpitchroll angles:\n')
                 # f.write(str(yawpitchroll_angles))
 
+                print('\ntvec: ',tvec[0][0][1])
                 #translation control
-                steer_angle=tvec[0][0][1]*90*Kp
-                if steer_angle>=45:
-                    steer_angle=45
+                # steer_angle=tvec[0][0][1]*90*Kp
+                # if steer_angle>=45:
+                #     steer_angle=45
                     
-                elif steer_angle<=-45:
-                    steer_angle=-45
+                # elif steer_angle<=-45:
+                #     steer_angle=-45
                     
                 if tvec[0][0][0]<0.1 and tvec[0][0][0]>-0.1:
                     move_straight()
                     print('\nmove straight!\n')
+                elif tvec[0][0][0]<-0.1:
+                    move_left()
+                    print('\nmove left!\n')
                 else:
-                    move(steer_angle)
-                    print('\nsteer_angle: ', steer_angle)
+                    move_right()
+                    print('\nmove right!\n')
+                    # move(steer_angle)
+                    # print('\nsteer_angle: ', steer_angle)
  
             else:
                 # code to show 'No Ids' when no markers are found
