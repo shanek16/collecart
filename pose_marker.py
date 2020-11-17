@@ -118,8 +118,6 @@ if clientID!=-1:
     
     f=open("./img/data.txt",'w')
     while (vrep.simxGetConnectionId(clientID) != -1):
-        # move_straight()
-        # time.sleep(0.2)
         err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_buffer)
         if err == vrep.simx_return_ok:
             count=count+1
@@ -155,8 +153,9 @@ if clientID!=-1:
                 rotation_matrix, _ = cv2.Rodrigues(rvec[0])
                 yawpitchroll_angles = -180*yawpitchrolldecomposition(rotation_matrix)/math.pi
                 # yawpitchroll_angles[0,0] = (360-yawpitchroll_angles[0,0])%360 # change rotation sense if needed, comment this line otherwise
-                yawpitchroll_angles[1,0] = yawpitchroll_angles[1,0]+90
-
+                yawpitchroll_angles[1,0] = yawpitchroll_angles[1,0]+120
+                yawpitchroll_angles[2,0] = yawpitchroll_angles[2,0]+90-3
+                
                 for i in range(0, ids.size):
                     # draw axis for the aruco markers
                     cv2.aruco.drawAxis(img, mtx, dist, rvec[i], tvec[i], 0.1)
@@ -175,10 +174,10 @@ if clientID!=-1:
                 # print('\nrotation vector: \n',rvec)
                 # print('\ntranslation vector: \n',tvec)
                 f.write("\n\n%d:\n" %count)
-                f.write("translation vector: \n")
-                f.write(str(tvec))
-                # f.write("rotation vector: \n")
-                # f.write(str(rvec))
+                # f.write("translation vector: \n")
+                # f.write(str(tvec))
+                f.write("rotation vector: \n")
+                f.write(str(rvec))
                 # f.write("\nangle(rvec[0][0][1]-.17): \n")
                 # f.write(str(rvec[0][0][1]-.11))-9.0000e+01
                 # f.write("\nvector: ")
@@ -187,18 +186,11 @@ if clientID!=-1:
                 # f.write(str(1000*vector[1]-90))
                 # f.write('\nrotation matrix:\n')-9.0000e+01
                 # f.write(str(rotation_matrix))
-                # f.write('\nyawpitchroll angles:\n')
-                # f.write(str(yawpitchroll_angles))
-
-                print('\ntvec: ',tvec[0][0][1])
-                #translation control
-                # steer_angle=tvec[0][0][1]*90*Kp
-                # if steer_angle>=45:
-                #     steer_angle=45
-                    
-                # elif steer_angle<=-45:
-                #     steer_angle=-45
-                    
+                f.write('\nyawpitchroll angles:\n')
+                f.write(str(yawpitchroll_angles))
+                # print('\ntvec: ',tvec[0][0][1])
+                
+                #translation control                    
                 if tvec[0][0][0]<0.1 and tvec[0][0][0]>-0.1:
                     move_straight()
                     print('\nmove straight!\n')
@@ -208,9 +200,12 @@ if clientID!=-1:
                 else:
                     move_right()
                     print('\nmove right!\n')
+                #pd control?
+                    # steer_angle=tvec[0][0][1]*90*Kp
                     # move(steer_angle)
                     # print('\nsteer_angle: ', steer_angle)
  
+
             else:
                 # code to show 'No Ids' when no markers are found
                 cv2.putText(img, "No Ids", (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)            
