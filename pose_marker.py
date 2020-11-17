@@ -174,10 +174,10 @@ if clientID!=-1:
                 # print('\nrotation vector: \n',rvec)
                 # print('\ntranslation vector: \n',tvec)
                 f.write("\n\n%d:\n" %count)
-                # f.write("translation vector: \n")
-                # f.write(str(tvec))
-                f.write("rotation vector: \n")
-                f.write(str(rvec))
+                f.write("translation vector: \n")
+                f.write(str(tvec))
+                # f.write("rotation vector: \n")
+                # f.write(str(rvec))
                 # f.write("\nangle(rvec[0][0][1]-.17): \n")
                 # f.write(str(rvec[0][0][1]-.11))-9.0000e+01
                 # f.write("\nvector: ")
@@ -188,13 +188,16 @@ if clientID!=-1:
                 # f.write(str(rotation_matrix))
                 f.write('\nyawpitchroll angles:\n')
                 f.write(str(yawpitchroll_angles))
-                # print('\ntvec: ',tvec[0][0][1])
+                print('\nx: ',tvec[0][0][1])
                 
+                thrs=0.8
+
+                # if tvec[0][0][2]>2:
                 #translation control                    
-                if tvec[0][0][0]<0.1 and tvec[0][0][0]>-0.1:
+                if tvec[0][0][0]<thrs and tvec[0][0][0]>-thrs:
                     move_straight()
                     print('\nmove straight!\n')
-                elif tvec[0][0][0]<-0.1:
+                elif tvec[0][0][0]<-thrs:
                     move_left()
                     print('\nmove left!\n')
                 else:
