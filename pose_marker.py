@@ -51,19 +51,22 @@ if clientID!=-1:
     err_code,br_pinion=vrep.simxGetObjectHandle(clientID,"br_pinion", vrep.simx_opmode_blocking)
     err_code,fl_pinion=vrep.simxGetObjectHandle(clientID,"fl_pinion", vrep.simx_opmode_blocking)
     err_code,fr_pinion=vrep.simxGetObjectHandle(clientID,"fr_pinion", vrep.simx_opmode_blocking)
+
+    err_code,cart_sensor_front=vrep.simxGetObjectHandle(clientID,"cart_sensor_front", vrep.simx_opmode_blocking)
+    err_code,cart_sensor_back=vrep.simxGetObjectHandle(clientID,"cart_sensor_back", vrep.simx_opmode_blocking)
     
     def pinion_down():
         err_code = vrep.simxSetJointTargetPosition(clientID,bl_pinion,-0.05,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetPosition(clientID,br_pinion,-0.05,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_pinion,-0.17,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_pinion,-0.17,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_pinion,-0.05,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_pinion,-0.05,vrep.simx_opmode_streaming)
         return err_code
 
     def pinion_up():
-        err_code = vrep.simxSetJointTargetPosition(clientID,bl_pinion,0,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,br_pinion,0,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_pinion,0,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_pinion,0,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_pinion,0.15,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_pinion,0.15,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_pinion,0.15,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_pinion,0.15,vrep.simx_opmode_streaming)
         return err_code
 
     t = time.time() #record the initial time
@@ -122,10 +125,13 @@ if clientID!=-1:
         err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
         return err_code
 
+    pinion_up()
+    #proximity sensor
+    err_code,front_detection,_,_,_=vrep.simxReadProximitySensor(clientID,cart_sensor_front,vrep.simx_opmode_streaming)
     #camera
-    print ('Vision Sensor object handling')
+    #print ('Vision Sensor object handling')
     res, v1 = vrep.simxGetObjectHandle(clientID, 'camera_back', vrep.simx_opmode_oneshot_wait)
-    print ('Getting first image')
+    #print ('Getting first image')
     err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_streaming)
 
     # Load the predefined dictionary
@@ -138,12 +144,12 @@ if clientID!=-1:
     while (vrep.simxGetConnectionId(clientID) != -1):
         err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_buffer)
         if err == vrep.simx_return_ok:
-
-            pinion_up()
             count=count+1
+
             img = np.array(image,dtype=np.uint8)
             img.resize([resolution[1],resolution[0],3])
             img=cv2.flip(img,0)
+
             #---------pose_estimation-------------------
             gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
             
@@ -159,15 +165,18 @@ if clientID!=-1:
 
             # font for displaying text (below)
             font = cv2.FONT_HERSHEY_SIMPLEX
-           
-            # check if the ids list is not empty
-            # if no check is added the code will crash
+            
+            #proximity sensor
+            err_code,front_detection,_,_,_=vrep.simxReadProximitySensor(clientID,cart_sensor_front,vrep.simx_opmode_buffer)
+            if front_detection==True:
+                pinion_down()
+            # check if the ids list is not empty : if no check is added the code will crash
             if np.all(ids != None):
-
                 # estimate pose of each marker and return the values
                 # rvec and tvec-different from camera coefficients
                 rvec, tvec ,_ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.1, mtx, dist)
                 #(rvec-tvec).any() # get rid of that nasty numpy value array error
+                
                 theta=np.linalg.norm(rvec[0][0])
                 vector=np.array(rvec[0][0]/theta)
                 rotation_matrix, _ = cv2.Rodrigues(rvec[0])
@@ -227,14 +236,11 @@ if clientID!=-1:
                     # steer_angle=tvec[0][0][1]*90*Kp
                     # move(steer_angle)
                     # print('\nsteer_angle: ', steer_angle)
-                
-                if tvec[0][0][2]<2:
-                    pinion_down()
- 
 
             else:
+                move_straight()
                 # code to show 'No Ids' when no markers are found
-                cv2.putText(img, "No Ids", (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)            
+                cv2.putText(img, "No Ids", (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)        
 
             # Detect the markers in the image
             markerCorners, markerIds, rejectedCandidates = cv2.aruco.detectMarkers(img, dictionary, parameters=parameters)
