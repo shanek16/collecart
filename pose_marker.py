@@ -47,6 +47,25 @@ if clientID!=-1:
     err_code,br_joint=vrep.simxGetObjectHandle(clientID,"br_steer", vrep.simx_opmode_blocking)
     err_code,fr_joint=vrep.simxGetObjectHandle(clientID,"fr_steer", vrep.simx_opmode_blocking)
 
+    err_code,bl_pinion=vrep.simxGetObjectHandle(clientID,"bl_pinion", vrep.simx_opmode_blocking)
+    err_code,br_pinion=vrep.simxGetObjectHandle(clientID,"br_pinion", vrep.simx_opmode_blocking)
+    err_code,fl_pinion=vrep.simxGetObjectHandle(clientID,"fl_pinion", vrep.simx_opmode_blocking)
+    err_code,fr_pinion=vrep.simxGetObjectHandle(clientID,"fr_pinion", vrep.simx_opmode_blocking)
+    
+    def pinion_down():
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_pinion,-0.05,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_pinion,-0.05,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_pinion,-0.17,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_pinion,-0.17,vrep.simx_opmode_streaming)
+        return err_code
+
+    def pinion_up():
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_pinion,0,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_pinion,0,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_pinion,0,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_pinion,0,vrep.simx_opmode_streaming)
+        return err_code
+
     t = time.time() #record the initial time
     #set vel
     vel=20 
@@ -103,7 +122,6 @@ if clientID!=-1:
         err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
         return err_code
 
-
     #camera
     print ('Vision Sensor object handling')
     res, v1 = vrep.simxGetObjectHandle(clientID, 'camera_back', vrep.simx_opmode_oneshot_wait)
@@ -120,6 +138,8 @@ if clientID!=-1:
     while (vrep.simxGetConnectionId(clientID) != -1):
         err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_buffer)
         if err == vrep.simx_return_ok:
+
+            pinion_up()
             count=count+1
             img = np.array(image,dtype=np.uint8)
             img.resize([resolution[1],resolution[0],3])
@@ -207,6 +227,9 @@ if clientID!=-1:
                     # steer_angle=tvec[0][0][1]*90*Kp
                     # move(steer_angle)
                     # print('\nsteer_angle: ', steer_angle)
+                
+                if tvec[0][0][2]<2:
+                    pinion_down()
  
 
             else:
