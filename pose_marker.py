@@ -131,9 +131,10 @@ if clientID!=-1:
     #camera
     #print ('Vision Sensor object handling')
     res, v1 = vrep.simxGetObjectHandle(clientID, 'camera_back', vrep.simx_opmode_oneshot_wait)
+    res2, v2 = vrep.simxGetObjectHandle(clientID, 'Vision_sensor', vrep.simx_opmode_oneshot_wait)
     #print ('Getting first image')
     err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_streaming)
-
+    err2, resolution2, image2 = vrep.simxGetVisionSensorImage(clientID, v2, 0, vrep.simx_opmode_streaming)
     # Load the predefined dictionary
     dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
 
@@ -143,12 +144,17 @@ if clientID!=-1:
     f=open("./img/data.txt",'w')
     while (vrep.simxGetConnectionId(clientID) != -1):
         err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_buffer)
-        if err == vrep.simx_return_ok:
+        err2, resolution2, image2 = vrep.simxGetVisionSensorImage(clientID, v2, 0, vrep.simx_opmode_buffer)
+        if err == vrep.simx_return_ok and err2==vrep.simx_return_ok:
             count=count+1
 
             img = np.array(image,dtype=np.uint8)
             img.resize([resolution[1],resolution[0],3])
             img=cv2.flip(img,0)
+
+            img2 = np.array(image2,dtype=np.uint8)
+            img2.resize([resolution2[1],resolution2[0],3])
+            img2=cv2.flip(img2,0)
 
             #---------pose_estimation-------------------
             gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
@@ -215,11 +221,15 @@ if clientID!=-1:
                 # f.write(str(1000*vector[1]-90))
                 # f.write('\nrotation matrix:\n')-9.0000e+01
                 # f.write(str(rotation_matrix))
-                f.write('\nyawpitchroll angles:\n')
-                f.write(str(yawpitchroll_angles))
-                print('\nx: ',tvec[0][0][1])
-                
+                # f.write('\nyawpitchroll angles:\n')
+                # f.write(str(yawpitchroll_angles))
+                f.write('\nx: ')
+                f.write(str(tvec[0][0][0]))
+                print('\nx: ',tvec[0][0][0])
                 thrs=0.8
+                print('thrs: ',thrs)
+                f.write('\nthrs: ')
+                f.write(str(thrs))
 
                 # if tvec[0][0][2]>2:
                 #translation control                    
@@ -255,14 +265,22 @@ if clientID!=-1:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             cv2.imshow('image',img)
             img_name = "./img/{}.jpg".format(count)
-            cv2.imwrite(img_name, img)    
+            cv2.imwrite(img_name, img)
+
+            img2=cv2.resize(img2, (512,512))
+            img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)
+            img2_name = "./img2/{}.jpg".format(count)
+            cv2.imwrite(img2_name, img2)
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         elif err == vrep.simx_return_novalue_flag:
             print ("no image yet")
             pass
         else:
-          print (err)
+          print ('err: ',err)
+          print('err2: ',err2)
+          print('in else')
 else:
   print ("Failed to connect to remote API Server")
   vrep.simxFinish(clientID)
