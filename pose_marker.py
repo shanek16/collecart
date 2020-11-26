@@ -9,8 +9,8 @@ import math
 
 count=0
 Kp=.3
-thrs=0.6
-thrs2=0.05
+thrs=0.5
+thrs2=0.03
 
 def yawpitchrolldecomposition(R):
     sin_x    = math.sqrt(R[2,0] * R[2,0] +  R[2,1] * R[2,1])    
@@ -75,7 +75,7 @@ if clientID!=-1:
     #set vel
     vel=20
     #cycle=0
-    low_vel=5
+    low_vel=3
 
 
     def move_straight(velocity):
@@ -159,6 +159,7 @@ if clientID!=-1:
     pinion_up()
     #proximity sensor
     err_code,front_detection,_,_,_=vrep.simxReadProximitySensor(clientID,cart_sensor_front,vrep.simx_opmode_streaming)
+    err_code,back_detection,_,_,_=vrep.simxReadProximitySensor(clientID,cart_sensor_back,vrep.simx_opmode_streaming)
     #camera
     #print ('Vision Sensor object handling')
     res, v1 = vrep.simxGetObjectHandle(clientID, 'camera_front', vrep.simx_opmode_oneshot_wait)
@@ -205,7 +206,13 @@ if clientID!=-1:
             
             #proximity sensor
             err_code,front_detection,_,_,_=vrep.simxReadProximitySensor(clientID,cart_sensor_front,vrep.simx_opmode_buffer)
+            err_code,back_detection,_,_,_=vrep.simxReadProximitySensor(clientID,cart_sensor_back,vrep.simx_opmode_buffer)
             if front_detection==True:
+                print('\n\nfront detected!!')
+                low_vel=20
+            
+            if back_detection==True:
+                print('\n\nback detected!!')
                 pinion_down()
             # check if the ids list is not empty : if no check is added the code will crash
             if np.all(ids != None):
@@ -305,6 +312,7 @@ if clientID!=-1:
                     
             else:
                 move_straight(low_vel)
+                print('marker not detected, move low vel: ',low_vel)
                 # code to show 'No Ids' when no markers are found
                 cv2.putText(img, "No Ids", (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)        
 
