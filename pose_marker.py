@@ -8,7 +8,8 @@ import matplotlib.pyplot as mlp
 import math
 
 count=0
-Kp=.3
+Kp=20
+Kd=1
 thrs=0.5
 thrs2=0.03
 
@@ -94,9 +95,9 @@ if clientID!=-1:
     def move_ll():
         #pin steer
         err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,22,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,22,vrep.simx_opmode_streaming)
         #motor control
         err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
@@ -107,9 +108,9 @@ if clientID!=-1:
     def move_rr():
         #pin steer
         err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,-45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,-45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,-22,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,-45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,-45,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,-22,vrep.simx_opmode_streaming)
         #motor control
         err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
@@ -143,17 +144,17 @@ if clientID!=-1:
         err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,low_vel,vrep.simx_opmode_streaming)
         return err_code
 
-    def move(steer_angle):
+    def move(steer_angle,velocity):
         #pin steer
-        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,steer_angle,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,steer_angle,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,steer_angle,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,-steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,-steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,-steer_angle,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,-steer_angle,vrep.simx_opmode_streaming)
         #motor control
-        err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetVelocity(clientID,bl_motor_handle,vel,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,vel,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,velocity,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,velocity,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,bl_motor_handle,velocity,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetVelocity(clientID,br_motor_handle,velocity,vrep.simx_opmode_streaming)
         return err_code
 
     pinion_up()
@@ -244,8 +245,8 @@ if clientID!=-1:
                     strg += new_ids[i][0]+', '
 
                 cv2.putText(img, "Id: " + strg, (10,64), font, 3, (0,255,0),2,cv2.LINE_AA)
-                # print('\nrotation vector: \n',rvec)
-                # print('\ntranslation vector: \n',tvec)
+                print('\nrotation vector: \n',rvec)
+                print('\ntranslation vector: \n',tvec)
                 f.write("\n\n%d:\n" %count)
                 f.write("translation vector: \n")
                 f.write(str(tvec))
@@ -261,42 +262,44 @@ if clientID!=-1:
                 # f.write(str(rotation_matrix))
                 # f.write('\nyawpitchroll angles:\n')
                 # f.write(str(yawpitchroll_angles))
-                f.write('\nx: ')
-                f.write(str(tvec[0][0][0]))
                 print('\nx: ',tvec[0][0][0])
-                print('thrs: ',thrs)
-                f.write('\nthrs: ')
-                f.write(str(thrs))
 
-                if tvec[0][0][2]>3.5:
-                    #bang bang                    
-                    if tvec[0][0][0]<thrs and tvec[0][0][0]>-thrs:
-                        move_straight(vel)
-                        print('\nmove straight!\n')
-                        f.write('\nmove straight!\n')
-                    elif tvec[0][0][0]<-thrs:
-                        move_ll()
-                        print('\nmove left!\n')
-                        f.write('\nmove left!\n')
-                    else:
-                        move_rr()
-                        print('\nmove right!\n')
-                        f.write('\nmove right!\n')
-                
+                #p control
+                Pgain=tvec[0][0][0]*tvec[0][0][2]*Kp
+                #Dgain=(x-prev_x)*Kd
+
+                velocity=max(abs(Pgain),2)
+                if tvec[0][0][0]>thrs2:
+                    steer_angle=45
+                elif tvec[0][0][0]<-thrs2:
+                    steer_angle=-45
                 else:
-                    if tvec[0][0][0]<thrs2 and tvec[0][0][0]>-thrs2:
-                        move_straight(low_vel)
-                        print('\nmove s!\n')
-                        f.write('\nmove s!\n')
-                    elif tvec[0][0][0]<-thrs2:
-                        move_l()
-                        print('\nmove l!\n')
-                        f.write('\nmove l!\n')
-                    else:
-                        move_r()
-                        print('\nmove r!\n')
-                        f.write('\nmove r!\n')
-                #pd control
+                    steer_angle=0
+                
+                move(steer_angle,velocity)
+                
+                print('\nsteer_angle: ', steer_angle)
+                f.write('\nsteer_angle: ')
+                f.write(str(steer_angle))
+                print('\nvelocity: ', velocity)
+                f.write('\nvelocity: ')
+                f.write(str(velocity))
+
+                # if tvec[0][0][2]>3.5:
+                #     #bang bang                    
+                #     if tvec[0][0][0]<thrs and tvec[0][0][0]>-thrs:
+                #         move_straight(vel)
+                #         print('\nmove straight!\n')
+                #         f.write('\nmove straight!\n')
+                #     elif tvec[0][0][0]<-thrs:
+                #         move_ll()
+                #         print('\nmove left!\n')
+                #         f.wri                f.write('\nx: ')
+                # f.write(str(tvec[0][0][0]))('\nmove right!\n')
+                #         f.write('\nmove right!\n')
+                
+                # else:
+                #     if tvec[0][0][0]<thrs2 an          #pd control
                     # if cycle==0:
                     #     steer_angle=tvec[0][0][0]*90*Kp
                     
@@ -306,9 +309,6 @@ if clientID!=-1:
                     # move(steer_angle)
                     # cycle=cycle+1
                     # print('cycle: ',cycle)
-                    # print('\nsteer_angle: ', steer_angle)
-                    # f.write('\nsteer_angle: ')
-                    # f.write(str(steer_angle))
                     
             else:
                 move_straight(low_vel)
