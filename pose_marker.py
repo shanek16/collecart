@@ -8,10 +8,10 @@ import matplotlib.pyplot as mlp
 import math
 
 count=0
-Kp=20
-Kd=1
-thrs=0.5
-thrs2=0.03
+Kp=7
+Kd=3
+thrs=0.1
+thrs2=0.04
 
 def yawpitchrolldecomposition(R):
     sin_x    = math.sqrt(R[2,0] * R[2,0] +  R[2,1] * R[2,1])    
@@ -28,7 +28,7 @@ objp = np.zeros((6*6,3), np.float32)
 objp[:,:2] = np.mgrid[0:6,0:6].T.reshape(-1,2)
 
 # Arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
+objpoints = [] # 3d point in real wo+5.0000e-02rld space
 imgpoints = [] # 2d points in image plane.
 
 axis = np.float32([[3,0,0], [0,3,0], [0,0,-3]]).reshape(-1,3)
@@ -95,9 +95,9 @@ if clientID!=-1:
     def move_ll():
         #pin steer
         err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,22,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,45,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,22,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,45,vrep.simx_opmode_streaming)
         #motor control
         err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
@@ -108,9 +108,9 @@ if clientID!=-1:
     def move_rr():
         #pin steer
         err_code = vrep.simxSetJointTargetPosition(clientID,bl_joint,-45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,-22,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fl_joint,-45,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetPosition(clientID,br_joint,-45,vrep.simx_opmode_streaming)
-        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,-22,vrep.simx_opmode_streaming)
+        err_code = vrep.simxSetJointTargetPosition(clientID,fr_joint,-45,vrep.simx_opmode_streaming)
         #motor control
         err_code = vrep.simxSetJointTargetVelocity(clientID,fl_motor_handle,vel,vrep.simx_opmode_streaming)
         err_code = vrep.simxSetJointTargetVelocity(clientID,fr_motor_handle,vel,vrep.simx_opmode_streaming)
@@ -179,8 +179,6 @@ if clientID!=-1:
         err, resolution, image = vrep.simxGetVisionSensorImage(clientID, v1, 0, vrep.simx_opmode_buffer)
         err2, resolution2, image2 = vrep.simxGetVisionSensorImage(clientID, v2, 0, vrep.simx_opmode_buffer)
         if err == vrep.simx_return_ok and err2==vrep.simx_return_ok:
-            count=count+1
-
             img = np.array(image,dtype=np.uint8)
             img.resize([resolution[1],resolution[0],3])
             img=cv2.flip(img,0)
@@ -208,15 +206,21 @@ if clientID!=-1:
             #proximity sensor
             err_code,front_detection,_,_,_=vrep.simxReadProximitySensor(clientID,cart_sensor_front,vrep.simx_opmode_buffer)
             err_code,back_detection,_,_,_=vrep.simxReadProximitySensor(clientID,cart_sensor_back,vrep.simx_opmode_buffer)
-            if front_detection==True:
-                print('\n\nfront detected!!')
-                low_vel=20
             
             if back_detection==True:
                 print('\n\nback detected!!')
                 pinion_down()
+                time.sleep(.5)
+                low_vel=0
+            
+            elif front_detection==True:
+                print('\n\nfront detected!!')
+                # low_vel=8
+            
+            
             # check if the ids list is not empty : if no check is added the code will crash
             if np.all(ids != None):
+                count=count+1
                 # estimate pose of each marker and return the values
                 # rvec and tvec-different from camera coefficients
                 rvec, tvec ,_ = cv2.aruco.estimatePoseSingleMarkers(corners, 0.1, mtx, dist)
@@ -237,20 +241,66 @@ if clientID!=-1:
                 # draw a square around the markers
                 cv2.aruco.drawDetectedMarkers(img, corners)
 
-                #code to show ids of the marker found
+                #code to show ids of the Dgainmarker found
                 choices=['back','front','left','right']
                 new_ids=np.choose(ids,choices)
                 strg = ''
                 for i in range(0, new_ids.size):
                     strg += new_ids[i][0]+', '
+                print('ids: ',ids)
+
+                if ids[ids.size-1][0]==3: #id: right
+                    print('facing side: ',new_ids[ids.size-1][0])
+                    move_ll()
+                    print('right detected!!--> turn left')
+                    
+                elif ids[ids.size-1][0]==2:
+                    print('facing side: ',new_ids[ids.size-1][0])
+                    move_rr()
+                    print('left detected!!--> turn right')
+
+                elif ids[ids.size-1][0]==1:
+                    print('facing front!!')
+                    move_ll()
+
+                else:        
+                    print('facing back!!')  
+                    #p control
+                    Pgain=tvec[0][0][0]*tvec[0][0][2]*Kp
+                    if count>2:
+                        Dgain=(pre_Pgain-Pgain)*Kd
+                        f.write("translation vector: \n")
+                        f.write(str(tvec))
+                        print('pre_Pgain({:2f})-Pgain({:2f})={:2f}'.format(pre_Pgain,Pgain,pre_Pgain-Pgain))
+                        f.write('\npre_Pgain({:2f})-Pgain({:2f})={:2f}'.format(pre_Pgain,Pgain,pre_Pgain-Pgain))
+                    else:
+                        Dgain=0
+                    pre_Pgain=Pgain
+
+                    velocity=max(abs(Pgain+Dgain),8)
+                    if tvec[0][0][2]<3:
+                        thrs=thrs2
+                        velocity=max(abs(Pgain+Dgain),2)
+                    if tvec[0][0][0]>thrs:
+                        steer_angle=45
+                    elif tvec[0][0][0]<-thrs:
+                        steer_angle=-45
+                    else:
+                        steer_angle=0
+                    f.write('\nthrs:{}'.format(thrs))
+
+                    
+                    move(steer_angle,velocity)
+                    print('move({},{})'.format(steer_angle,velocity))
+                    f.write('\nmove({},{})'.format(steer_angle,velocity))
+                
 
                 cv2.putText(img, "Id: " + strg, (10,64), font, 3, (0,255,0),2,cv2.LINE_AA)
-                print('\nrotation vector: \n',rvec)
-                print('\ntranslation vector: \n',tvec)
+                # print('\nrotation vector: \n',rvec)
+                # print('\ntranslation vector: \n',tvec)
                 f.write("\n\n%d:\n" %count)
-                f.write("translation vector: \n")
-                f.write(str(tvec))
-                # f.write("rotation vector: \n")
+
+                # f.write("\nrotation vector: \n")
                 # f.write(str(rvec))
                 # f.write("\nangle(rvec[0][0][1]-.17): \n")
                 # f.write(str(rvec[0][0][1]-.11))-9.0000e+01
@@ -262,28 +312,14 @@ if clientID!=-1:
                 # f.write(str(rotation_matrix))
                 # f.write('\nyawpitchroll angles:\n')
                 # f.write(str(yawpitchroll_angles))
-                print('\nx: ',tvec[0][0][0])
-
-                #p control
-                Pgain=tvec[0][0][0]*tvec[0][0][2]*Kp
-                #Dgain=(x-prev_x)*Kd
-
-                velocity=max(abs(Pgain),2)
-                if tvec[0][0][0]>thrs2:
-                    steer_angle=45
-                elif tvec[0][0][0]<-thrs2:
-                    steer_angle=-45
-                else:
-                    steer_angle=0
+                # print('\nx: ',tvec[0][0][0])
                 
-                move(steer_angle,velocity)
-                
-                print('\nsteer_angle: ', steer_angle)
-                f.write('\nsteer_angle: ')
-                f.write(str(steer_angle))
-                print('\nvelocity: ', velocity)
-                f.write('\nvelocity: ')
-                f.write(str(velocity))
+                # print('\nsteer_angle: ', steer_angle)
+                # f.write('\nsteer_angle: ')
+                # f.write(str(steer_angle))
+                # print('\nvelocity: ', velocity)
+                # f.write('\nvelocity: ')
+                # f.write(str(velocity))
 
                 # if tvec[0][0][2]>3.5:
                 #     #bang bang                    
