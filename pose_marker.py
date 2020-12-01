@@ -8,8 +8,8 @@ import matplotlib.pyplot as mlp
 import math
 
 count=0
-Kp=7
-Kd=3
+Kp=1
+Kd=1
 thrs=0.1
 thrs2=0.04
 
@@ -211,7 +211,7 @@ if clientID!=-1:
                 print('\n\nback detected!!')
                 pinion_down()
                 time.sleep(.5)
-                low_vel=0
+                low_vel=-10
             
             elif front_detection==True:
                 print('\n\nfront detected!!')
@@ -271,8 +271,8 @@ if clientID!=-1:
                         Dgain=(pre_Pgain-Pgain)*Kd
                         f.write("translation vector: \n")
                         f.write(str(tvec))
-                        print('pre_Pgain({:2f})-Pgain({:2f})={:2f}'.format(pre_Pgain,Pgain,pre_Pgain-Pgain))
-                        f.write('\npre_Pgain({:2f})-Pgain({:2f})={:2f}'.format(pre_Pgain,Pgain,pre_Pgain-Pgain))
+                        # print('pre_Pgain({:2f})-Pgain({:2f})={:2f}'.format(pre_Pgain,Pgain,pre_Pgain-Pgain))
+                        # f.write('\npre_Pgain({:2f})-Pgain({:2f})={:2f}'.format(pre_Pgain,Pgain,pre_Pgain-Pgain))
                     else:
                         Dgain=0
                     pre_Pgain=Pgain
