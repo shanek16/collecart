@@ -9,7 +9,7 @@ import math
 
 count=0
 Kp=1
-Kd=1
+Kd=3
 thrs=0.1
 thrs2=0.04
 
